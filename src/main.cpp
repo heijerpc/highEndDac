@@ -174,10 +174,10 @@ void writeValuesScreen() {         // write variables to screen
 void changeInputChannel() {    // proc to change input channel, raspberry or usb
   bool channelNotChanged = true;
   int channelChange = 0;  
-  if (rotaryChange > 1) channelChange = 1;
+  if (rotaryChange > 1) channelChange = 1;                                 // we only change after 2 clicks
   if (rotaryChange < -1) channelChange = -1;
   if (channelChange != 0) {                                                // if input channel should be changed
-    while (channelNotChanged) {                                             // as long as we did not find the next input channel
+    while (channelNotChanged) {                                            // as long as we did not find the next input channel
       Dac.CurrentInputChannel = Dac.CurrentInputChannel + channelChange;   // select new channel
       if (Dac.CurrentInputChannel > 4) Dac.CurrentInputChannel = 0;
       if (Dac.CurrentInputChannel < 0) Dac.CurrentInputChannel = 4;
@@ -185,10 +185,10 @@ void changeInputChannel() {    // proc to change input channel, raspberry or usb
     }
     rotaryChange = 0;
   }
-  if (channelChange == 0) {
-    if (!(Dac.ChannelUsed[Dac.CurrentInputChannel])) {   // if we are on a channel not allowed to be used
-      while (channelNotChanged) {                                             // as long as we did not find the next input channel
-        Dac.CurrentInputChannel = Dac.CurrentInputChannel + 1;   // select new channel
+  if (channelChange == 0) {                                               // rotarty click less than 2, check if channel is allowed
+    if (!(Dac.ChannelUsed[Dac.CurrentInputChannel])) {                    // if we are on a channel not allowed to be used
+      while (channelNotChanged) {                                         // as long as we did not find the next input channel
+        Dac.CurrentInputChannel = Dac.CurrentInputChannel + 1;            // select new channel
         if (Dac.CurrentInputChannel > 4) Dac.CurrentInputChannel = 0;
         if (Dac.CurrentInputChannel < 0) Dac.CurrentInputChannel = 4;
         if (Dac.ChannelUsed[Dac.CurrentInputChannel]) channelNotChanged = false;
@@ -204,7 +204,7 @@ void changeInputChannel() {    // proc to change input channel, raspberry or usb
     case  0:                                  // USB no reclock
       digitalWrite(USBNoReclock, HIGH);       // usb, selection between usb and receiver pi on main pcb 
       digitalWrite(streaming, LOW);           // receiver pi, not used, so keep low    
-      digitalWrite(SPDIF_PCM, HIGH);           // not used, so keep low// walter change      
+      digitalWrite(SPDIF_PCM, HIGH);          // needs to be high // walter change      
       digitalWrite(SPDIF_OPT_RCA, LOW);       // not used, so keep low           
       digitalWrite(GPIOUSB, LOW);             // not used, so keep low
       break;
