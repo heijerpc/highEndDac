@@ -247,6 +247,7 @@ void changeInputChannel() {    // proc to change input channel, raspberry or usb
     Serial.println(Dac.FriendlyInputChannel[Dac.CurrentInputChannel]);
   }  
   #endif
+
 }
 
 void changeOnStandby() {  //proc to switch dac between active and standby
@@ -268,7 +269,7 @@ void changeOnStandby() {  //proc to switch dac between active and standby
     delay(100);                                   // wait to stabilze
     Screen.setPowerSave(0);                       // turn screen on
     writeFixedValuesScreen();                     // write fixed values on the screen
-    #ifdef debugDAC                                 // if debugDAC enabled write message
+    #ifdef debugDAC                               // if debugDAC enabled write message
       Serial.println(F("changeOnStandby: status of dac changed to alive "));
     #endif
   }
@@ -864,16 +865,12 @@ void attachInterruptTask(void *pvParameters) {
 
 void DacDataTask(void * pvParameters){
 
-  // define pins used within task
- // pinMode(freqCount, INPUT);
+ // define pins used within task
   pinMode(playMusic, INPUT);  	
   pinMode(bit24Word, INPUT);  
   pinMode(bit32Word, INPUT); 
 
-  // define frequency counter running on core 0
- // attachInterrupt(digitalPinToInterrupt(freqCount), intFreqCount, RISING);
-
-  // datadefinitions
+  // data definitions
   unsigned long timeStartCountTicks;        // time starting counting ticks
   int long totalTicks = 0;                  // total number of ticks in a second
 
@@ -908,8 +905,7 @@ void DacDataTask(void * pvParameters){
 void setup () { 
 //#ifdef debugDAC
   Serial.begin(115200);  // if debugDAC on start monitor screen
-  //while(!Serial);
-  delay(10000);
+  while(!Serial);
   Serial.println(F("debug on  "));
 //#endif  
 
@@ -1020,5 +1016,4 @@ void loop() {                                      // main loop
       mainSetupMenu();
     } 
   }
-//      measureFreq = false;
 } 
