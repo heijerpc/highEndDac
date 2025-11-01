@@ -7,4 +7,4 @@
 .fake
 test
 include
-platform.ini
+platformio.ini
