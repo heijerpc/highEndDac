@@ -147,7 +147,7 @@ void writeValuesScreen() {         // write variables to screen
   Screen.setDrawColor(1);
   Screen.setFont(fontH21cijfer);  
   Screen.setCursor(0, 24);
-  if (bitDepthFound) {
+  if ((bitDepthFound) and (freqFound)){
     Screen.print(bitDepthValue);     // write bitdepth
   } 
   else {
