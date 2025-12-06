@@ -10,7 +10,7 @@
 // v0.2  adapting to front pcb of W2
 // v0.3  included task for second core and menu udate
 
-#//define debugDAC             // Comment this line when debugPreAmp mode is not needed
+//#define debugDAC             // Comment this line when debugPreAmp mode is not needed
 
 // pin definitions
 #define onStandby A0           // pin connected to the relay handeling power on/off of the dac
@@ -54,7 +54,6 @@ volatile int rotaryChange = 0;             // change of volume out of interupt f
 volatile int pinAstateCurrent = LOW;       
 volatile int pinBstateCurrent = LOW;                
 volatile int pinAStateLast = LOW;
-unsigned long timeLastRotaryChange = 0;
 ezButton button(rotaryButton);             // create ezButton object  attached to the rotary button;
 
 //  general definitions
@@ -87,13 +86,13 @@ void writeStorage() {   // write the EEProm with the init values
     1,                  // default is the Raspberry active
     "USB no reclock",   // technical names of input channels 
     "I2S HDMI      ",
-    "SPDIF coax    ",
-    "SPDIF optical ",
+    "SPDIF RCA     ",
+    "Toslink       ",
     "USB reclock   ",
     "USB no reclock",   // user friendly names
-    "   I2S HDMI   ",
-    "  SPDIF coax  ",
-    "SPFIF optical ",
+    "     HDMI     ",
+    "  SPDIF RCA   ",
+    "    Toslink   ",
     " USB reclock  ",
     true,              // defines if input channel is used
     true,
@@ -148,7 +147,7 @@ void writeValuesScreen() {         // write variables to screen
   Screen.setDrawColor(1);
   Screen.setFont(fontH21cijfer);  
   Screen.setCursor(0, 24);
-  if (bitDepthFound) {
+  if ((bitDepthFound) and (freqFound)){
     Screen.print(bitDepthValue);     // write bitdepth
   } 
   else {
@@ -173,19 +172,16 @@ void writeValuesScreen() {         // write variables to screen
 
 void changeInputChannel() {    // proc to change input channel, raspberry or usb
   bool channelNotChanged = true;
-  int channelChange = 0;  
-  if (rotaryChange > 1) channelChange = 1;                                 // we only change after 2 clicks
-  if (rotaryChange < -1) channelChange = -1;
-  if (channelChange != 0) {                                                // if input channel should be changed
+  if (rotaryChange != 0) {                                                // if input channel should be changed
     while (channelNotChanged) {                                            // as long as we did not find the next input channel
-      Dac.CurrentInputChannel = Dac.CurrentInputChannel + channelChange;   // select new channel
+      Dac.CurrentInputChannel = Dac.CurrentInputChannel + rotaryChange;   // select new channel
       if (Dac.CurrentInputChannel > 4) Dac.CurrentInputChannel = 0;
       if (Dac.CurrentInputChannel < 0) Dac.CurrentInputChannel = 4;
       if (Dac.ChannelUsed[Dac.CurrentInputChannel]) channelNotChanged = false; // if new channel is used we found new channel
     }
     rotaryChange = 0;
   }
-  if (channelChange == 0) {                                               // rotarty click less than 2, check if channel is allowed
+  if (rotaryChange == 0) {                                               // rotarty click less than 2, check if channel is allowed
     if (!(Dac.ChannelUsed[Dac.CurrentInputChannel])) {                    // if we are on a channel not allowed to be used
       while (channelNotChanged) {                                         // as long as we did not find the next input channel
         Dac.CurrentInputChannel = Dac.CurrentInputChannel + 1;            // select new channel
@@ -242,7 +238,7 @@ void changeInputChannel() {    // proc to change input channel, raspberry or usb
   DacStor.putBytes("dacStoredValues", &Dac, sizeof(Dac));
   DacStor.end();                               // close the namespace in RW mode and...
   #ifdef debugDAC                              // if debug enabled write message
-  if (channelChange != 0) {
+  if (!channelNotChanged) {
     Serial.print(F("changeInputChannel, input channel changed, new channel : "));
     Serial.println(Dac.FriendlyInputChannel[Dac.CurrentInputChannel]);
   }  
@@ -320,12 +316,12 @@ void IRAM_ATTR rotaryTurn() { // Interrupt Service Routine for a change to Rotar
   pinAstateCurrent = digitalRead(rotaryPinA);    // Lees de huidige staat van Pin A
   pinBstateCurrent = digitalRead(rotaryPinB);
   if ((pinAStateLast == LOW) && (pinAstateCurrent == HIGH)) {
-    if (pinBstateCurrent == HIGH) {rotaryChange = rotaryChange -1;}
-    else {rotaryChange = rotaryChange + 1;}
+    if (pinBstateCurrent == HIGH) {rotaryChange = -1;}
+    else {rotaryChange =  1;}
   }
   else { 
-    if (pinBstateCurrent == LOW) {rotaryChange = rotaryChange - 1;}
-    else {rotaryChange = rotaryChange + 1;} 
+    if (pinBstateCurrent == LOW) {rotaryChange = - 1;}
+    else {rotaryChange =  1;} 
   }
   pinAStateLast = pinAstateCurrent; 
 }
@@ -551,10 +547,10 @@ void setupMenuInputChannelsOnOff() {
     Screen.print(Dac.InputChannel[i]);
     Screen.setCursor(110, (20 + ((i) * 10)));
     if (Dac.ChannelUsed[i]) {
-      Screen.print(F("Yes"));  //write amp gain with a box
+      Screen.print(F("Yes"));  
     } 
     else {
-      Screen.print(F("No "));  //write amp gain with a box
+      Screen.print(F("No "));  
     }
   }
   Screen.sendBuffer();  // copy memory to screen
@@ -683,7 +679,6 @@ void setupMenuChangeNameInputChan() {
       while ((!isShortDetected) && (!quit) && (!isLongDetected)) {  // loop to change a char
         if (millis() > timeSaved + idlePeriod) {                    // verify if still somebody doing something
           quit = true;
-//          break;
         }
         if (write) {  // if char is changed write char 
           char buf[2];
@@ -903,11 +898,11 @@ void DacDataTask(void * pvParameters){
   }
 
 void setup () { 
-//#ifdef debugDAC
+#ifdef debugDAC
   Serial.begin(115200);  // if debugDAC on start monitor screen
   while(!Serial);
   Serial.println(F("debug on  "));
-//#endif  
+#endif  
 
   // pin modes
   pinMode(onStandby, OUTPUT);         
@@ -985,17 +980,7 @@ void setup () {
 
 void loop() {                                      // main loop
   if (dacAlive)  {  
-    if ((rotaryChange == 1) or (rotaryChange == -1)) { // set a timer when rotary change = 1 or -1
-      if (timeLastRotaryChange == 0) {
-        timeLastRotaryChange = millis();
-      }
-    }
-    if (((millis() - 1000) > timeLastRotaryChange) && (timeLastRotaryChange != 0)) { // reset rotary change 
-      rotaryChange = 0;
-      timeLastRotaryChange = 0;
-    }
-         
-    if ((rotaryChange > 1) or (rotaryChange < -1)) { 
+    if (rotaryChange != 0) { 
       changeInputChannel();                        // change input channel
       writeFixedValuesScreen();                    // write input channel to scree 
     }
