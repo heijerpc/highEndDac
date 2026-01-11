@@ -9,8 +9,17 @@
 // v0.1  first version, on/off, input select, screen on/off, bit and freq counter test
 // v0.2  adapting to front pcb of W2
 // v0.3  included task for second core and menu udate
+// v0.4  changed way of measuring bit depth, added intro screen
 
 //#define debugDAC             // Comment this line when debugPreAmp mode is not needed
+
+// definitions for the introscreen, could be chaged 
+const char* topTekst =  "version: 0.4, Illuminator";             // current version of the code, shown in startscreen top, content could be changed
+const char* middleTekst = "          please wait";  //as an example const char* MiddleTekst = "Cristian, please wait";
+//const char* middleTekst = "Cristian, please wait";
+const char* bottemTekst = " " ;                     //as an example const char* BottemTekst = "design by: Walter Widmer" ;
+//const char* bottemTekst = "design by: Walter Widmer" ;
+int startDelayTime = 10;                             // number of seconds showing intro screen
 
 // pin definitions
 #define onStandby A0           // pin connected to the relay handeling power on/off of the dac
@@ -32,10 +41,12 @@ volatile int rotaryPinB = 4;   // encoder pin B, volatile as its addressed withi
 
 // variables used for the frequentie counters / bitdept
 unsigned long timeUpdateScreen = 0;       // time to update screen
+unsigned long timeUpdateBitDepth = 0;     // time to measure bitdepth
 char frequencyValue[6];                   // frequency in char 
 char bitDepthValue[3];                    // bitdepth in char
 volatile int long ticker = 0;             // current counter of ticks
 bool freqFound;                           // do we see a frequency on the input port
+bool prevBitDepthFound;                   // did we see data on the input data in the previous run 
 bool bitDepthFound;                       // do we see data on the input data
 
 // variables used for the oled screen
@@ -78,6 +89,36 @@ TaskHandle_t DacData;
 // used with preferenes to define read or read/write mode
 #define RW_MODE false
 #define RO_MODE true
+
+void waitForXseconds() {
+ #ifdef debugPreAmp                           // if debugPreAmp enabled write message
+  Serial.println(F("waitForXseconds: show intro messages "));
+ #endif
+  Screen.clearBuffer();                       // clear the internal memory and screen
+  Screen.setFont(fontH08);                    // choose a suitable font
+  Screen.setCursor(0, 8);                     // set cursur in correct position
+  Screen.print(topTekst);                     // write tekst to buffer
+  Screen.setCursor(13, 63);                   // set cursur in correct position
+  Screen.print(bottemTekst);                  // write tekst to buffer
+  Screen.setFont(fontH10);                    // choose a suitable font
+  Screen.setCursor(5, 28);                    // set cursur in correct position
+  Screen.print(middleTekst);                  // write please wait
+  for (int i = startDelayTime; i > 0; i--) {    // run for startDelayTime times
+    Screen.setDrawColor(0);                         // clean channel name  part in buffer
+    Screen.drawBox(65, 31, 30, 14);
+    Screen.setDrawColor(1);
+    Screen.setCursor(65, 45);                 // set cursur in correct position
+    Screen.print(i);                          // print char array
+    Screen.sendBuffer();                      // transfer internal memory to the display
+    delay(1000);                              // delay for a second
+  }
+  Screen.clearDisplay();                      // clear screen
+ #ifdef debugPreAmp                                 // if debugPreAmp enabled write message
+  Serial.println(F("waitForXseconds: wait time expired "));
+ #endif
+}
+
+
 
 void writeStorage() {   // write the EEProm with the init values
   SavedData InitValues = {
@@ -154,10 +195,10 @@ void writeValuesScreen() {         // write variables to screen
     Screen.print("--");
   }
   Screen.setFont(fontH08);
-  Screen.setCursor(10, 38);
+  Screen.setCursor(13, 38);
   Screen.print(" bits ");
   Screen.setFont(fontH21cijfer);
-  Screen.setCursor(50, 24);; 
+  Screen.setCursor(50, 24);
   if (freqFound) {
     Screen.print(frequencyValue);  
   }
@@ -264,6 +305,7 @@ void changeOnStandby() {  //proc to switch dac between active and standby
     digitalWrite(ledStandby, LOW);                // switch LED off
     delay(100);                                   // wait to stabilze
     Screen.setPowerSave(0);                       // turn screen on
+    waitForXseconds();
     writeFixedValuesScreen();                     // write fixed values on the screen
     #ifdef debugDAC                               // if debugDAC enabled write message
       Serial.println(F("changeOnStandby: status of dac changed to alive "));
@@ -648,7 +690,7 @@ void setupMenuChangeNameInputChan() {
   unsigned long releasedTime = 0;                                           // used for detecting pressen time
   char charsAvailable[66] = {"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 -:"};  // list of chars available for name input channel
   timeSaved = millis();
-  for (int inputChannel = 0; inputChannel < 5; inputChannel++) {                                             // run through the different channels
+  for (int inputChannel = 0; inputChannel < 6; inputChannel++) {                                             // run through the different channels
     if (!quit) {
       Screen.clearBuffer();
       Screen.setFont(fontH10);    
@@ -883,15 +925,6 @@ void DacDataTask(void * pvParameters){
     if (totalTicks > 3700) {strcpy(frequencyValue,  " 384 ");}
     if (totalTicks > 7000) {strcpy(frequencyValue,  "705,6");}
     if (totalTicks > 7500) {strcpy(frequencyValue,  " 768 ");}
-    bitDepthFound = true;
-    if (!digitalRead(playMusic)) {
-      bitDepthFound = false;
-    }
-    else {
-      strcpy(bitDepthValue, "16");
-      if (digitalRead(bit24Word)) {strcpy(bitDepthValue, "24");}
-      if (digitalRead(bit32Word)) {strcpy(bitDepthValue, "32");}
-    }
     ticker = 0;
     vTaskDelay(1000);
     }
@@ -983,6 +1016,20 @@ void loop() {                                      // main loop
     if (rotaryChange != 0) { 
       changeInputChannel();                        // change input channel
       writeFixedValuesScreen();                    // write input channel to scree 
+    }
+    if (millis() - timeUpdateBitDepth >= 200) { // if  0.2 seconds have passed update the screen
+      if ((digitalRead(playMusic)) == prevBitDepthFound)  {  // no data
+        bitDepthFound = prevBitDepthFound;
+      }
+      else {
+        prevBitDepthFound = !prevBitDepthFound; 
+      }
+      if (bitDepthFound) {
+        strcpy(bitDepthValue, "16");
+        if (digitalRead(bit24Word)) {strcpy(bitDepthValue, "24");}
+        if (digitalRead(bit32Word)) {strcpy(bitDepthValue, "32");}        
+      }
+      timeUpdateBitDepth  = millis();
     }
 
     if (millis() - timeUpdateScreen >= 2000) { // if  2 seconds have passed update the screen
