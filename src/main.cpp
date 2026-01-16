@@ -10,16 +10,17 @@
 // v0.2  adapting to front pcb of W2
 // v0.3  included task for second core and menu udate
 // v0.4  changed way of measuring bit depth, added intro screen
+// v0.5  bugfixes
 
 //#define debugDAC             // Comment this line when debugPreAmp mode is not needed
 
 // definitions for the introscreen, could be chaged 
-const char* topTekst =  "version: 0.4, Illuminator";             // current version of the code, shown in startscreen top, content could be changed
+const char* topTekst =  "version: 0.5, Illuminator";             // current version of the code, shown in startscreen top, content could be changed
 const char* middleTekst = "          please wait";  //as an example const char* MiddleTekst = "Cristian, please wait";
-//const char* middleTekst = "Cristian, please wait";
+//const char* middleTekst = "Kasper, please wait";
 const char* bottemTekst = " " ;                     //as an example const char* BottemTekst = "design by: Walter Widmer" ;
 //const char* bottemTekst = "design by: Walter Widmer" ;
-int startDelayTime = 10;                             // number of seconds showing intro screen
+int startDelayTime = 5;                             // number of seconds showing intro screen
 
 // pin definitions
 #define onStandby A0           // pin connected to the relay handeling power on/off of the dac
@@ -117,8 +118,6 @@ void waitForXseconds() {
   Serial.println(F("waitForXseconds: wait time expired "));
  #endif
 }
-
-
 
 void writeStorage() {   // write the EEProm with the init values
   SavedData InitValues = {
@@ -681,7 +680,6 @@ void setupMenuChangeNameInputChan() {
   bool isPressing = false;                                                  // defines if button is pressed
   bool isLongDetected = false;                                              // defines if button is pressed long
   bool isShortDetected = false;                                             // defines if button is pressed short
-  int inputChan = 1;                                                        // inputchannel
   int selectedChar = 0;                                                     // char to be changed
   int curCharPos = -1;                                                      // char position within CharsAvailable
   unsigned long int idlePeriod = 30000;                                     // idlePeriod you need to change something within menu otherwise quit menu
@@ -690,7 +688,9 @@ void setupMenuChangeNameInputChan() {
   unsigned long releasedTime = 0;                                           // used for detecting pressen time
   char charsAvailable[66] = {"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 -:"};  // list of chars available for name input channel
   timeSaved = millis();
-  for (int inputChannel = 0; inputChannel < 6; inputChannel++) {                                             // run through the different channels
+  //for (int inputChannel = 0; inputChannel < 5; inputChannel++) { 
+  int inputChannel = 0;                                      
+  while ( inputChannel < 5) {                                               // run through the different channels
     if (!quit) {
       Screen.clearBuffer();
       Screen.setFont(fontH10);    
@@ -735,7 +735,7 @@ void setupMenuChangeNameInputChan() {
           Screen.setCursor(0, 63);
           Screen.print(Dac.FriendlyInputChannel[inputChannel]); // write inputchannel
           Screen.sendBuffer();
-          for (int charPos = 0; charPos < 38; charPos++) {  // detect which pos is of current char in charoptions
+          for (int charPos = 0; charPos < 65; charPos++) {  // detect which pos is of current char in charoptions
             if (Dac.FriendlyInputChannel[inputChannel][selectedChar] == charsAvailable[charPos]) {
               curCharPos = charPos;
               break;
@@ -809,8 +809,7 @@ void setupMenuChangeNameInputChan() {
     isLongDetected = false;
     isPressing = false;
     selectedChar = 0;
-    inputChan++;
-    if (inputChan > 4) quit = true;
+    inputChannel++;
     timeSaved = millis();
   }
 }
@@ -902,11 +901,6 @@ void attachInterruptTask(void *pvParameters) {
 
 void DacDataTask(void * pvParameters){
 
- // define pins used within task
-  pinMode(playMusic, INPUT);  	
-  pinMode(bit24Word, INPUT);  
-  pinMode(bit32Word, INPUT); 
-
   // data definitions
   unsigned long timeStartCountTicks;        // time starting counting ticks
   int long totalTicks = 0;                  // total number of ticks in a second
@@ -950,6 +944,9 @@ void setup () {
   pinMode(buttonOnStandby, INPUT_PULLUP);  
   pinMode(ledStandby, OUTPUT);
   pinMode(oledReset, OUTPUT);
+  pinMode(playMusic, INPUT);  	
+  pinMode(bit24Word, INPUT);  
+  pinMode(bit32Word, INPUT); 
 
   // write init state to output pins
   digitalWrite(onStandby, LOW);                 // keep dac turned off
@@ -1007,7 +1004,7 @@ void setup () {
     changeOnStandby();                                                  // switch to standby
   }
 
-  xTaskCreatePinnedToCore(DacDataTask, "Collect freq/bitdepth from DAC", 4000, NULL, 1, &DacData, 0); 
+  xTaskCreatePinnedToCore(DacDataTask, "Collect freq from DAC", 4000, NULL, 1, &DacData, 0); 
   xTaskCreatePinnedToCore(attachInterruptTask, "Attach Interrupt Task", 2000, NULL, 6, NULL, 1);
 }
 
