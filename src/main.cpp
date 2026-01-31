@@ -186,7 +186,7 @@ void writeValuesScreen() {         // write variables to screen
   Screen.drawBox(0, 0, 128, 44);
   Screen.setDrawColor(1);
   Screen.setFont(fontH21cijfer);  
-  Screen.setCursor(0, 24);
+  Screen.setCursor(0, 28);
   if ((bitDepthFound) and (freqFound)){
     Screen.print(bitDepthValue);     // write bitdepth
   } 
@@ -194,10 +194,10 @@ void writeValuesScreen() {         // write variables to screen
     Screen.print("--");
   }
   Screen.setFont(fontH08);
-  Screen.setCursor(13, 38);
+  Screen.setCursor(13, 42);
   Screen.print(" bits ");
   Screen.setFont(fontH21cijfer);
-  Screen.setCursor(50, 24);
+  Screen.setCursor(50, 28);
   if (freqFound) {
     Screen.print(frequencyValue);  
   }
@@ -205,7 +205,7 @@ void writeValuesScreen() {         // write variables to screen
     Screen.print("-----");
   }
   Screen.setFont(fontH08);
-  Screen.setCursor(100, 38);
+  Screen.setCursor(100, 42);
   Screen.print("kHz");
   Screen.sendBuffer();
 }
@@ -910,15 +910,15 @@ void DacDataTask(void * pvParameters){
     freqFound = true;
     if (totalTicks <= 420)  {freqFound = false;}
     if (totalTicks > 420)   {strcpy(frequencyValue, " 44,1");}
-    if (totalTicks > 470)   {strcpy(frequencyValue, "  48 ");}
+    if (totalTicks > 470)   {strcpy(frequencyValue, "   48");}
     if (totalTicks > 860)   {strcpy(frequencyValue, " 88,2");}
-    if (totalTicks > 940)   {strcpy(frequencyValue, "  96 ");}
+    if (totalTicks > 940)   {strcpy(frequencyValue, "   96");}
     if (totalTicks > 1600)  {strcpy(frequencyValue, "176,4");}
-    if (totalTicks > 1800) {strcpy(frequencyValue,  " 192 ");}
+    if (totalTicks > 1800) {strcpy(frequencyValue,  "  192");}
     if (totalTicks > 3300) {strcpy(frequencyValue,  "352,8");}
-    if (totalTicks > 3700) {strcpy(frequencyValue,  " 384 ");}
+    if (totalTicks > 3700) {strcpy(frequencyValue,  "  384");}
     if (totalTicks > 7000) {strcpy(frequencyValue,  "705,6");}
-    if (totalTicks > 7500) {strcpy(frequencyValue,  " 768 ");}
+    if (totalTicks > 7500) {strcpy(frequencyValue,  "  768");}
     ticker = 0;
     vTaskDelay(1000);
     }
