@@ -11,11 +11,12 @@
 // v0.3  included task for second core and menu udate
 // v0.4  changed way of measuring bit depth, added intro screen
 // v0.5  bugfixes
+// v0.6  changed rotoray proc, setup of freq part of screen
 
 //#define debugDAC             // Comment this line when debugPreAmp mode is not needed
 
 // definitions for the introscreen, could be chaged 
-const char* topTekst =  "version: 0.5, Illuminator";             // current version of the code, shown in startscreen top, content could be changed
+const char* topTekst =  "version: 0.6, Illuminator";             // current version of the code, shown in startscreen top, content could be changed
 const char* middleTekst = "          please wait";  //as an example const char* MiddleTekst = "Cristian, please wait";
 //const char* middleTekst = "Kasper, please wait";
 const char* bottemTekst = " " ;                     //as an example const char* BottemTekst = "design by: Walter Widmer" ;
@@ -60,13 +61,16 @@ bool bitDepthFound;                       // do we see data on the input data
 #define fontgrahp u8g2_font_open_iconic_play_2x_t     // 16w x 16h pixels
 #define fontH21cijfer u8g2_font_timB24_tn             // 17w x 31h, char 23h
 U8G2_SSD1309_128X64_NONAME0_F_HW_I2C Screen(U8G2_R0); // define the screen type used.
+int Xpos = 0;                                         // used to define position on screen 
 
 // variables for the rotary
 volatile int rotaryChange = 0;             // change of volume out of interupt function
 volatile int pinAstateCurrent = LOW;       
 volatile int pinBstateCurrent = LOW;                
-volatile int pinAStateLast = LOW;
-ezButton button(rotaryButton);             // create ezButton object  attached to the rotary button;
+volatile unsigned long lastEncoderTime = 0;
+#define timeBetweenChangeAandB 80                 // time to prevent interupt rotary from running again
+#define debounceDelay 140                         // debounce delay on A channel rotary
+ezButton button(rotaryButton);                    // create ezButton object  attached to the rotary button;
 
 //  general definitions
 bool dacAlive = false;               // boolean, defines if dac is on or off
@@ -130,10 +134,10 @@ void writeStorage() {   // write the EEProm with the init values
     "Toslink       ",
     "USB reclock   ",
     "USB no reclock",   // user friendly names
-    "     HDMI     ",
+    "        HDMI  ",
     "  SPDIF RCA   ",
-    "    Toslink   ",
-    " USB reclock  ",
+    "      Toslink ",
+    "   STREAMER   ",
     true,              // defines if input channel is used
     true,
     true,
@@ -197,11 +201,12 @@ void writeValuesScreen() {         // write variables to screen
   Screen.setCursor(13, 42);
   Screen.print(" bits ");
   Screen.setFont(fontH21cijfer);
-  Screen.setCursor(50, 28);
-  if (freqFound) {
+  if ((bitDepthFound) and (freqFound)){
+    Screen.setCursor(Xpos, 28);
     Screen.print(frequencyValue);  
   }
   else {
+    Screen.setCursor(60, 28);
     Screen.print("-----");
   }
   Screen.setFont(fontH08);
@@ -354,17 +359,22 @@ void listContentEEPROM() {
 #endif
 
 void IRAM_ATTR rotaryTurn() { // Interrupt Service Routine for a change to Rotary Encoder pin A
-  pinAstateCurrent = digitalRead(rotaryPinA);    // Lees de huidige staat van Pin A
-  pinBstateCurrent = digitalRead(rotaryPinB);
-  if ((pinAStateLast == LOW) && (pinAstateCurrent == HIGH)) {
+  unsigned long now = millis();
+  pinBstateCurrent = digitalRead(rotaryPinB);    // Lees de huidige staat van Pin B, it is still stable
+  if (now - lastEncoderTime < timeBetweenChangeAandB) return; // debounce if change of B influences A
+  delayMicroseconds(debounceDelay);
+  pinAstateCurrent = digitalRead(rotaryPinA);
+  if (pinAstateCurrent == HIGH) {
     if (pinBstateCurrent == HIGH) {rotaryChange = -1;}
     else {rotaryChange =  1;}
   }
-  else { 
-    if (pinBstateCurrent == LOW) {rotaryChange = - 1;}
-    else {rotaryChange =  1;} 
+  else {
+    if (pinAstateCurrent == LOW) {
+      if (pinBstateCurrent == LOW) {rotaryChange = -1;}
+      else {rotaryChange =  1;}
+    }
   }
-  pinAStateLast = pinAstateCurrent; 
+  lastEncoderTime = now; 
 }
 
 #ifdef debugDAC  // function to check i2c bus
@@ -379,6 +389,7 @@ void IRAM_ATTR rotaryTurn() { // Interrupt Service Routine for a change to Rotar
   numberOfDevices = 0;
   for (address = 1; address < 127; address++) {                       // loop through addresses
     Wire.beginTransmission(address);                                  // test address
+    delay(10);
     error = Wire.endTransmission();                                   // resolve errorcode
     if (error == 0) {                                                 // if address exist code is 0
       Serial.print("I2C device found at address 0x");                 // print address info
@@ -909,16 +920,16 @@ void DacDataTask(void * pvParameters){
     totalTicks = ticker;                        // save the value of # ticks
     freqFound = true;
     if (totalTicks <= 420)  {freqFound = false;}
-    if (totalTicks > 420)   {strcpy(frequencyValue, " 44,1");}
-    if (totalTicks > 470)   {strcpy(frequencyValue, "   48");}
-    if (totalTicks > 860)   {strcpy(frequencyValue, " 88,2");}
-    if (totalTicks > 940)   {strcpy(frequencyValue, "   96");}
-    if (totalTicks > 1600)  {strcpy(frequencyValue, "176,4");}
-    if (totalTicks > 1800) {strcpy(frequencyValue,  "  192");}
-    if (totalTicks > 3300) {strcpy(frequencyValue,  "352,8");}
-    if (totalTicks > 3700) {strcpy(frequencyValue,  "  384");}
-    if (totalTicks > 7000) {strcpy(frequencyValue,  "705,6");}
-    if (totalTicks > 7500) {strcpy(frequencyValue,  "  768");}
+    if (totalTicks > 420)   {strcpy(frequencyValue, " 44,1");Xpos = 55 ;}
+    if (totalTicks > 470)   {strcpy(frequencyValue, "   48");Xpos = 55 ;}
+    if (totalTicks > 860)   {strcpy(frequencyValue, " 88,2");Xpos = 55 ;}
+    if (totalTicks > 940)   {strcpy(frequencyValue, "   96");Xpos = 55 ;}
+    if (totalTicks > 1600)  {strcpy(frequencyValue, "176,4");Xpos = 46 ;}
+    if (totalTicks > 1800) {strcpy(frequencyValue,  "  192");Xpos = 54 ;}
+    if (totalTicks > 3300) {strcpy(frequencyValue,  "352,8");Xpos = 46 ;}
+    if (totalTicks > 3700) {strcpy(frequencyValue,  "  384");Xpos = 54 ;}
+    if (totalTicks > 7000) {strcpy(frequencyValue,  "705,6");Xpos = 46 ;}
+    if (totalTicks > 7500) {strcpy(frequencyValue,  "  768");Xpos = 54 ;}
     ticker = 0;
     vTaskDelay(1000);
     }
@@ -938,8 +949,8 @@ void setup () {
   pinMode(SPDIF_PCM, OUTPUT);         
   pinMode(SPDIF_OPT_RCA, OUTPUT);    
   pinMode(GPIOUSB, OUTPUT);     
-  pinMode(rotaryPinA, INPUT_PULLUP); 
-  pinMode(rotaryPinB, INPUT_PULLUP);
+  pinMode(rotaryPinA, INPUT); 
+  pinMode(rotaryPinB, INPUT);
   pinMode(rotaryButton,INPUT_PULLUP);
   pinMode(buttonOnStandby, INPUT_PULLUP);  
   pinMode(ledStandby, OUTPUT);
