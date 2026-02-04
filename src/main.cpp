@@ -193,25 +193,19 @@ void writeValuesScreen() {         // write variables to screen
   Screen.setCursor(0, 28);
   if ((bitDepthFound) and (freqFound)){
     Screen.print(bitDepthValue);     // write bitdepth
+    Screen.setCursor(Xpos, 28);
+    Screen.print(frequencyValue);  
   } 
   else {
-    Screen.print("--");
+    Screen.print(F("--"));
+    Screen.setCursor(60, 28);
+    Screen.print(F("-----"));
   }
   Screen.setFont(fontH08);
   Screen.setCursor(13, 42);
-  Screen.print(" bits ");
-  Screen.setFont(fontH21cijfer);
-  if ((bitDepthFound) and (freqFound)){
-    Screen.setCursor(Xpos, 28);
-    Screen.print(frequencyValue);  
-  }
-  else {
-    Screen.setCursor(60, 28);
-    Screen.print("-----");
-  }
-  Screen.setFont(fontH08);
+  Screen.print(F(" bits "));
   Screen.setCursor(100, 42);
-  Screen.print("kHz");
+  Screen.print(F("kHz"));
   Screen.sendBuffer();
 }
 
