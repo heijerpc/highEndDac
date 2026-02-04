@@ -12,11 +12,12 @@
 // v0.4  changed way of measuring bit depth, added intro screen
 // v0.5  bugfixes
 // v0.6  changed rotoray proc, setup of freq part of screen
+// v0.7  bugfixes.
 
 //#define debugDAC             // Comment this line when debugPreAmp mode is not needed
 
 // definitions for the introscreen, could be chaged 
-const char* topTekst =  "version: 0.6, Illuminator";             // current version of the code, shown in startscreen top, content could be changed
+const char* topTekst =  "version: 0.7, Illuminator";             // current version of the code, shown in startscreen top, content could be changed
 const char* middleTekst = "          please wait";  //as an example const char* MiddleTekst = "Cristian, please wait";
 //const char* middleTekst = "Kasper, please wait";
 const char* bottemTekst = " " ;                     //as an example const char* BottemTekst = "design by: Walter Widmer" ;
@@ -912,17 +913,17 @@ void DacDataTask(void * pvParameters){
 
   while (true) {
     totalTicks = ticker;                        // save the value of # ticks
-    freqFound = true;
+    freqFound = true;                          // assume we found frequency
     if (totalTicks <= 420)  {freqFound = false;}
-    if (totalTicks > 420)   {strcpy(frequencyValue, " 44,1");Xpos = 55 ;}
+    if (totalTicks > 420)   {strcpy(frequencyValue, " 44.1");Xpos = 55 ;}
     if (totalTicks > 470)   {strcpy(frequencyValue, "   48");Xpos = 55 ;}
-    if (totalTicks > 860)   {strcpy(frequencyValue, " 88,2");Xpos = 55 ;}
+    if (totalTicks > 860)   {strcpy(frequencyValue, " 88.2");Xpos = 55 ;}
     if (totalTicks > 940)   {strcpy(frequencyValue, "   96");Xpos = 55 ;}
-    if (totalTicks > 1600)  {strcpy(frequencyValue, "176,4");Xpos = 46 ;}
+    if (totalTicks > 1600)  {strcpy(frequencyValue, "176.4");Xpos = 46 ;}
     if (totalTicks > 1800) {strcpy(frequencyValue,  "  192");Xpos = 54 ;}
-    if (totalTicks > 3300) {strcpy(frequencyValue,  "352,8");Xpos = 46 ;}
+    if (totalTicks > 3300) {strcpy(frequencyValue,  "352.8");Xpos = 46 ;}
     if (totalTicks > 3700) {strcpy(frequencyValue,  "  384");Xpos = 54 ;}
-    if (totalTicks > 7000) {strcpy(frequencyValue,  "705,6");Xpos = 46 ;}
+    if (totalTicks > 7000) {strcpy(frequencyValue,  "705.6");Xpos = 46 ;}
     if (totalTicks > 7500) {strcpy(frequencyValue,  "  768");Xpos = 54 ;}
     ticker = 0;
     vTaskDelay(1000);
