@@ -107,7 +107,7 @@ void waitForXseconds() {
   Screen.setCursor(13, 63);                   // set cursur in correct position
   Screen.print(bottemTekst);                  // write tekst to buffer
   Screen.setFont(fontH10);                    // choose a suitable font
-  Screen.setCursor(5, 28);                    // set cursur in correct position
+  Screen.setCursor(0, 28);                    // set cursur in correct position
   Screen.print(middleTekst);                  // write please wait
   for (int i = startDelayTime; i > 0; i--) {    // run for startDelayTime times
     Screen.setDrawColor(0);                         // clean channel name  part in buffer
