@@ -913,7 +913,7 @@ void DacDataTask(void * pvParameters){
 
   while (true) {
     totalTicks = ticker;                        // save the value of # ticks
-    freqFound = true;
+    freqFound = true;                          // assume we found frequency
     if (totalTicks <= 420)  {freqFound = false;}
     if (totalTicks > 420)   {strcpy(frequencyValue, " 44.1");Xpos = 55 ;}
     if (totalTicks > 470)   {strcpy(frequencyValue, "   48");Xpos = 55 ;}
